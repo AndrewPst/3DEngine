@@ -71,25 +71,32 @@ private:
 		return getTranslateMatrix() * getRotateMatrix();
 	}
 
-	std::pair<sf::Vector3f, sf::Vector3f>  drawLine(const sf::Vector3f& pos1, const sf::Vector3f& pos2, sf::RenderWindow& window) {
+	std::pair<sf::Vector3f, sf::Vector3f>  calculateLine(const sf::Vector3f& pos1, const sf::Vector3f& pos2) {
 		sf::Vector3f pMin, pMax;
 		if (pos1.z <= 0 && pos2.z <= 0)
 			return std::make_pair(pos1, pos2);
 
+		//getting the nearest point
 		bool isSwap = false;
-		if (pos1.z < pos2.z) {
+		if (pos1.z < pos2.z) 
+		{
 			pMin = pos1;
 			pMax = pos2;
 		}
-		else {
+		else 
+		{
 			isSwap = true;
 			pMin = pos2;
 			pMax = pos1;
 		}
 
-		if (pMin.z < 0) {
+		if (pMin.z < 0) 
+		{
+			//correction the line
 			pMin.x = (pMax.x + (pMax.x - pMin.x));
 			pMin.y = (pMax.y + (pMax.y - pMin.y));
+
+			//extending the vector to the screen border
 			if (pMin.y > 0 && pMin.y < HEIGHT && pMin.x > 0 && pMin.x < WIDTH)
 			{
 				if (pMin.y == pMax.y)
@@ -121,9 +128,10 @@ private:
 	void drawPolygon(sf::Vector3f* vectors, sf::RenderWindow& window)
 	{
 		std::pair<sf::Vector3f, sf::Vector3f> arr[3];
-		arr[0] = drawLine(vectors[0], vectors[1], window);
-		arr[1] = drawLine(vectors[1], vectors[2], window);
-		arr[2] = drawLine(vectors[2], vectors[0], window);
+		//Calculating polygon lines
+		arr[0] = calculateLine(vectors[0], vectors[1]);
+		arr[1] = calculateLine(vectors[1], vectors[2]);
+		arr[2] = calculateLine(vectors[2], vectors[0]);
 
 		sf::Vector3f polygon[4]{
 			arr[0].first,
@@ -132,19 +140,28 @@ private:
 			arr[2].second
 		};
 
+		sf::Color ca[4]{
+			sf::Color::Red,
+			sf::Color::Green,
+			sf::Color::Blue,
+			sf::Color::Yellow,
+		};
+
+#pragma region LineDrawing
+
+		//Drawing all lines as polygon
 		for (int i = 0; i < 3; i++) {
 
 			if (polygon[i].z < 0 && polygon[i + 1].z < 0)
 				continue;
-
 			sf::Vertex va[2]
 			{
-				sf::Vertex({polygon[i].x, polygon[i].y} , sf::Color(255.f / 2.f * i, 255, 0)),
-				sf::Vertex({polygon[i+1].x, polygon[i+1].y}, sf::Color(255.f / 2.f * i, 255, 0)),
+				sf::Vertex({polygon[i].x, polygon[i].y} , ca[i]),
+				sf::Vertex({polygon[i + 1].x, polygon[i + 1].y}, ca[i + 1]),
 			};
 			window.draw(va, 2, sf::PrimitiveType::Lines);
 		}
-
+#pragma endregion
 	}
 
 public:
@@ -166,7 +183,7 @@ public:
 			{0, m11, 0, 0},
 			{0, 0, m22, 1},
 			{0, 0, m32, 0}
-		};
+		}; //Calculation the projection matrix
 	}
 
 	void setPosition(const sf::Vector3f& p)
@@ -223,7 +240,7 @@ public:
 
 	void drawObject(Object3D& object, sf::RenderWindow& window)
 	{
-		auto vertexes = ObjectTransformer::updateGlobalMatrix(object) * getCameraMatrix(); //ѕееводим координаты в глобальные и преобразуем в пространство камеры
+		auto vertexes = ObjectTransformer::updateGlobalMatrix(object) * getCameraMatrix(); //ѕереводим координаты в глобальные и преобразуем в пространство камеры
 		vertexes = vertexes * _projectionMatrix; //проециуем на экран от -1 до 1
 		for (size_t i = 0; i < vertexes.getRowsCount(); i++) { //ƒелим каждую вершину на W (Ќормализуем?)
 			auto t = vertexes[i];
@@ -231,7 +248,7 @@ public:
 			t[1] /= t[3];
 			t[2] /= t[3];
 			if (t[3] < 0)
-				t[2] = -abs(t[2]); //сохан€ем отрицательное значение
+				t[2] = -abs(t[2]); //сохран€ем отрицательное значение
 			t[3] /= t[3];
 		}
 		vertexes = vertexes * Matrix<double>{
@@ -245,78 +262,18 @@ public:
 
 		for (auto& e : edges)
 		{
-			sf::Vector3f vertexesArray[3]{
+			sf::Vector3f va[3]{
 				{(float)vertexes[e.x][0], (float)vertexes[e.x][1],(float)vertexes[e.x][2]},
 				{(float)vertexes[e.y][0], (float)vertexes[e.y][1],(float)vertexes[e.y][2]},
 				{(float)vertexes[e.z][0], (float)vertexes[e.z][1],(float)vertexes[e.z][2]}
 			};
 
-			qsort(vertexesArray, 3, sizeof(sf::Vector3f), [](const void* a, const void* b)  -> int
-				{
-					return (*(sf::Vector3f*)a).z - (*(sf::Vector3f*)b).z;
-				});
+			//BubbleSort hardcode
+			if (va[2].z < va[1].z) std::swap(va[2], va[1]);
+			if (va[1].z < va[0].z) std::swap(va[1], va[0]);
+			if (va[2].z < va[1].z) std::swap(va[2], va[1]);
 
-
-			drawPolygon(vertexesArray, window);
+			drawPolygon(va, window);
 		}
-
-		//for (auto& e : edges)
-		//{
-		//	sf::Vector3f pos1, pos2, pMin, pMax;
-		//	pos1 = sf::Vector3f(vertexes[std::get<0>(e)][0], vertexes[std::get<0>(e)][1], vertexes[std::get<0>(e)][2]);
-		//	pos2 = sf::Vector3f(vertexes[std::get<1>(e)][0], vertexes[std::get<1>(e)][1], vertexes[std::get<1>(e)][2]);
-
-		//	if (pos1.z < 0 && pos2.z < 0)
-		//		continue;
-
-		//	if (pos1.z < pos2.z) {
-		//		pMin = pos1;
-		//		pMax = pos2;
-		//	}
-		//	else {
-		//		pMin = pos2;
-		//		pMax = pos1;
-		//	}
-
-		//	if (pMin.z < 0) {
-		//		pMin.x = (pMax.x + (pMax.x - pMin.x));
-		//		pMin.y = (pMax.y + (pMax.y - pMin.y));
-		//		if (pMin.y > 0 && pMin.y < HEIGHT && pMin.x > 0 && pMin.y < WIDTH)
-		//		{
-		//			if (pMin.y == pMax.y)
-		//			{
-		//				pMin.x = pMin.x < pMax.x ? 0 : WIDTH;
-		//			}
-		//			else {
-		//				double h2 = 0;
-		//				if (pMin.y > pMax.y)
-		//					h2 = (HEIGHT - pMax.y);
-		//				else
-		//					h2 = -pMax.y;
-		//				sf::Vector3f subtractionV = subtractionVectors(pMin, pMax);
-		//				double size = (h2 * sqrt(subtractionV.x * subtractionV.x + subtractionV.y * subtractionV.y)) / subtractionV.y;
-		//				double koef = size / sqrt(subtractionV.x * subtractionV.x + subtractionV.y * subtractionV.y);
-		//				subtractionV.x *= koef;
-		//				subtractionV.y *= koef;
-		//				pMin = sumVectors(subtractionV, pMax);
-		//			}
-		//		}
-		//	}
-
-		//	sf::Vertex va[]{
-		//		sf::Vertex({pMin.x, pMin.y} ,std::get<2>(e)),
-		//		sf::Vertex({pMax.x, pMax.y}, std::get<2>(e)),
-		//	};
-
-		//	window.draw(va, 2, sf::PrimitiveType::Lines);
-		//	sf::CircleShape p(5);
-		//	p.setFillColor(sf::Color::Magenta);
-		//	if (pMin.z > 0) {
-		//		p.setPosition(pMin.x - 5, pMin.y - 5);
-		//		window.draw(p);
-		//	}
-		//	p.setPosition(pMax.x - 5, pMax.y - 5);
-		//	window.draw(p);
-		//}
 	}
 };

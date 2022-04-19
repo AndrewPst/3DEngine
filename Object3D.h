@@ -11,6 +11,10 @@
 
 typedef std::vector<sf::Vector3<int>> E_A;
 
+
+/// <summary>
+/// base class for 3D objects
+/// </summary>
 class Object3D
 {
 private:

@@ -1,3 +1,34 @@
+/*
+The MIT License(MIT)
+
+Copyright © «year» «copyright holders»
+
+Permission is hereby granted, free of charge, to any person obtaining a copy of this softwareand associated documentation files(the “Software”),
+to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense,
+and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+
+The above copyright noticeand this permission notice shall be included in all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
+DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
+ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+Author: Andrew Pustovit
+
+	_______
+   /      /|
+  /      / |
+ |------|  |
+ |      |  /
+ |      | /
+ |______|/
+ SFML 3d engine
+
+*/
+
+
+
 #include <iostream>
 #include <SFML/Graphics.hpp>
 #include <sstream>
@@ -15,15 +46,59 @@
 
 using sf::Keyboard;
 
-constexpr double MOVE_SPEED = 0.016;
-constexpr double ROTATION_SPEED = 0.008;
-
 Camera camera;
 FPS fps;
 
+void checkKeys();
+
+int main()
+{
+	camera.setPosition({ 0, 0, -4 });
+
+	//Created objects
+	Cube3D cube;
+	Axis axis;
+
+	//---------Create window--------
+	sf::ContextSettings context;
+	context.antialiasingLevel = 8;
+
+	sf::RenderWindow window(sf::VideoMode(WIDTH, HEIGHT), "Debug", sf::Style::Default, context);
+	window.setFramerateLimit(60);
+
+	//--------Live cycle----------
+	while (window.isOpen())
+	{
+		sf::Event event;
+		while (window.pollEvent(event))
+		{
+			if (event.type == sf::Event::Closed)
+				window.close();
+		}
+
+		checkKeys();
+
+		window.clear();
+
+		//Draw objects
+
+		camera.drawObject(cube, window);
+		camera.drawObject(axis, window);
+
+		//Update display
+		window.display();
+
+		//Calculate fps
+		fps.update();
+		std::ostringstream ss;
+		ss << fps.getFPS();
+		window.setTitle(ss.str());
+	}
+	return 0;
+}
+
 void checkKeys()
 {
-
 	if (Keyboard::isKeyPressed(Keyboard::Key::W)) {
 		camera.moveX(MOVE_SPEED);
 	}
@@ -65,55 +140,4 @@ void checkKeys()
 	if (Keyboard::isKeyPressed(Keyboard::Key::A)) {
 		camera.moveY(-MOVE_SPEED);
 	}
-}
-
-int main()
-{
-	camera.setPosition({ 0, 0, -4 });
-	Cube3D cube;
-	Axis axis;
-
-	sf::ContextSettings context;
-	context.antialiasingLevel = 8;
-
-	sf::RenderWindow window(sf::VideoMode(WIDTH, HEIGHT), "Debug", sf::Style::Default, context);
-	window.setFramerateLimit(60);
-
-	double time = 0;
-
-	ObjectTransformer::transfer(cube, { 1, 0, 0 });
-
-	Plane plane;
-
-	while (window.isOpen())
-	{
-		sf::Event event;
-		while (window.pollEvent(event))
-		{
-			if (event.type == sf::Event::Closed)
-				window.close();
-		}
-
-		checkKeys();
-
-		window.clear();
-
-		//ObjectTransformer::updateGlobalMatrix(cube);
-
-		camera.drawObject(plane, window);
-		//camera.drawObject(axis, window);
-
-		//cube.setPosition({ 1, (float)abs(sin(time)), 0 });
-		//ObjectTransformer::rotateY(cube, 0.012);
-
-		time += 0.05;
-
-		window.display();
-
-		fps.update();
-		std::ostringstream ss;
-		ss << fps.getFPS();
-		window.setTitle(ss.str());
-	}
-	return 0;
 }

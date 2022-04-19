@@ -5,7 +5,11 @@
 #include <SFML/System/Vector3.hpp>
 #include "Matrix.h"
 
-struct PointArray {
+/// <summary>
+/// Contains an array of coordinates of the vertices of the polygon
+/// </summary>
+struct PointArray
+{
 private:
 	std::valarray<sf::Vector3f> _array;
 public:
@@ -39,7 +43,7 @@ public:
 			t[0] = _array[i].x;
 			t[1] = _array[i].y;
 			t[2] = _array[i].z;
-			t[3] = 1;
+			t[3] = 1;//adding a homogeneous coordinate 
 		}
 		return r;
 	}
